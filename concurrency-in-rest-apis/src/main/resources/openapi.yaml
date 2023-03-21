@@ -67,7 +67,7 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
     500:
-      description: Bad Request
+      description: Internal Server Error
       content:
         application/json:
           schema:
