@@ -11,7 +11,8 @@ suspend fun saveDocument(ctx: RoutingContext) {
   val newContent = ctx.body().asString()
 
   if (newContent.isNullOrEmpty()) {
-    ctx.response().setStatusCode(400).end(jsonObjectOf("message" to "You need to pass some content!").encode())
+    ctx.response().setStatusCode(HttpStatus.BAD_REQUEST)
+      .end(jsonObjectOf("message" to "You need to pass some content!").encode())
     return
   }
 
@@ -26,27 +27,30 @@ suspend fun saveDocument(ctx: RoutingContext) {
 }
 
 private fun updateDocument(ctx: RoutingContext, document: Document, newContent: String) {
-  if (ctx.request().getHeader("If-Match").isNullOrBlank()) {
-    ctx.response().setStatusCode(428).end(jsonObjectOf("message" to "If-Match header is required").encode())
+  val requestETag = ctx.request().getHeader("If-Match")
+  if (requestETag.isNullOrBlank()) {
+    ctx.response().setStatusCode(HttpStatus.PRECONDITION_REQUIRED)
+      .end(jsonObjectOf("message" to "If-Match header is required").encode())
     return
   }
   val currentEtag = document.etag
-  val etagFromRequest = ctx.request().getHeader("If-Match")
-  if (etagFromRequest != currentEtag) {
-    ctx.response().setStatusCode(412)
+  if (requestETag != currentEtag) {
+    ctx.response().setStatusCode(HttpStatus.PRECONDITION_FAILED)
       .end(jsonObjectOf("message" to "Document has been updated in the meantime").encode())
     return
   } else {
     DataStore.put(
       document.copy(content = newContent, lastUpdatedAt = Instant.now())
     )
-    ctx.response().putHeader("Location", ctx.location("/documents/${document.id}")).setStatusCode(204).end()
+    ctx.response().putHeader("Location", ctx.location("/documents/${document.id}")).setStatusCode(HttpStatus.NO_CONTENT)
+      .end()
   }
 }
 
-private fun insertDocument(documentId: String, newContent: String, ctx: RoutingContext) {
-  DataStore.put(Document(documentId, newContent, Instant.now()))
-  ctx.response().putHeader("Location", ctx.location("/documents/$documentId")).setStatusCode(204).end()
+private fun insertDocument(documentId: String, content: String, ctx: RoutingContext) {
+  DataStore.put(Document(documentId, content, Instant.now()))
+  ctx.response().putHeader("Location", ctx.location("/documents/$documentId")).setStatusCode(HttpStatus.NO_CONTENT)
+    .end()
 }
 
 private fun RoutingContext.location(path: String): String {

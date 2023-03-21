@@ -8,7 +8,7 @@ suspend fun getDocument(ctx: RoutingContext) {
   val documentId = ctx.pathParam("id")
   val document = DataStore.get(documentId)
   if (document == null) {
-    ctx.response().setStatusCode(404).end()
+    ctx.response().setStatusCode(HttpStatus.NOT_FOUND).end()
   } else {
     ctx.response()
       .putHeader("Content-Type", "text/plain")

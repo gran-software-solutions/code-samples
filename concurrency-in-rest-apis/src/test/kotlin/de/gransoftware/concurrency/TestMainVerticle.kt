@@ -1,5 +1,6 @@
 package de.gransoftware.concurrency
 
+import de.gransoftware.concurrency.handlers.HttpStatus
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpMethod
@@ -33,7 +34,7 @@ class TestMainVerticle {
     webClient.get(8888, "localhost", "/documents/${UUID.randomUUID()}")
       .send()
       .await()
-      .let { assert(it.statusCode() == 404) }
+      .let { assert(it.statusCode() == HttpStatus.NOT_FOUND) }
   }
 
   @Test
@@ -76,7 +77,7 @@ class TestMainVerticle {
         .sendBuffer(Buffer.buffer("test3"))
         .await()
 
-      assert(updateResponse.statusCode() == 412)
+      assert(updateResponse.statusCode() == HttpStatus.PRECONDITION_FAILED)
     }
 
   @Test
@@ -91,7 +92,7 @@ class TestMainVerticle {
         .putHeader("Content-Type", "text/plain")
         .sendBuffer(Buffer.buffer("test2"))
         .await().statusCode()
-      assert(statusCode == 428)
+      assert(statusCode == HttpStatus.PRECONDITION_REQUIRED)
     }
 
 
@@ -101,7 +102,7 @@ class TestMainVerticle {
       .putHeader("Content-Type", "text/plain")
       .sendBuffer(Buffer.buffer("test"))
       .await()
-    assert(response.statusCode() == 204)
+    assert(response.statusCode() == HttpStatus.NO_CONTENT)
     return response
   }
 
@@ -111,7 +112,7 @@ class TestMainVerticle {
       .putHeader("Accept", "text/plain")
       .send()
       .await()
-    assert(response.statusCode() == 200)
+    assert(response.statusCode() == HttpStatus.OK)
     assert(!response.getHeader("ETag").isNullOrBlank())
     return response
   }
