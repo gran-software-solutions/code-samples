@@ -18,14 +18,18 @@ import java.util.UUID
 @ExtendWith(VertxExtension::class)
 class TestMainVerticle {
 
+  lateinit var webClient: WebClient
+
   @BeforeEach
   fun deploy_verticle(vertx: Vertx, testContext: VertxTestContext) {
-    vertx.deployVerticle(MainVerticle(), testContext.succeeding<String> { _ -> testContext.completeNow() })
+    vertx.deployVerticle(MainVerticle(), testContext.succeeding<String> { _ ->
+      webClient = WebClient.create(vertx)
+      testContext.completeNow()
+    })
   }
 
   @Test
   fun `getDocument returns 404 for no document found`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
-    val webClient = WebClient.create(vertx)
     webClient.get(8888, "localhost", "/documents/${UUID.randomUUID()}")
       .send()
       .await()
@@ -34,7 +38,6 @@ class TestMainVerticle {
 
   @Test
   fun `createDocument should create a doc`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
-    val webClient = WebClient.create(vertx)
     val docId = UUID.randomUUID().toString()
     val response = webClient.createDocument(docId)
     val location = response.getHeader("Location")
@@ -43,7 +46,6 @@ class TestMainVerticle {
 
   @Test
   fun `getDocument should get a created doc`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
-    val webClient = WebClient.create(vertx)
     val docId = UUID.randomUUID().toString()
     val response = webClient.createDocument(docId)
     val documentResponse = webClient.getDocument(docId)
@@ -53,7 +55,6 @@ class TestMainVerticle {
   @Test
   fun `updating a doc with a correct Etag is possible, with wrong one - not`(vertx: Vertx) =
     runBlocking(vertx.dispatcher()) {
-      val webClient = WebClient.create(vertx)
       val docId = UUID.randomUUID().toString()
       webClient.createDocument(docId)
       val documentResponse = webClient.getDocument(docId)
