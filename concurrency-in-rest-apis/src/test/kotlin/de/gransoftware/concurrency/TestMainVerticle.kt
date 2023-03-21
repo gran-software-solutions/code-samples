@@ -22,7 +22,7 @@ class TestMainVerticle {
 
   @BeforeEach
   fun deploy_verticle(vertx: Vertx, testContext: VertxTestContext) {
-    vertx.deployVerticle(MainVerticle(), testContext.succeeding<String> { _ ->
+    vertx.deployVerticle(MainVerticle(), testContext.succeeding { _ ->
       webClient = WebClient.create(vertx)
       testContext.completeNow()
     })
@@ -47,7 +47,7 @@ class TestMainVerticle {
   @Test
   fun `getDocument should get a created doc`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
     val docId = UUID.randomUUID().toString()
-    val response = webClient.createDocument(docId)
+    webClient.createDocument(docId)
     val documentResponse = webClient.getDocument(docId)
     documentResponse.body().toString().let { assert(it == "test") }
   }
