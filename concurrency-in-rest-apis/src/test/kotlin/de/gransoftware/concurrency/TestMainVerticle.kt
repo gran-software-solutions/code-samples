@@ -18,7 +18,7 @@ import java.util.UUID
 @ExtendWith(VertxExtension::class)
 class TestMainVerticle {
 
-  lateinit var webClient: WebClient
+  private lateinit var webClient: WebClient
 
   @BeforeEach
   fun deploy_verticle(vertx: Vertx, testContext: VertxTestContext) {
@@ -77,6 +77,21 @@ class TestMainVerticle {
         .await()
 
       assert(updateResponse.statusCode() == 412)
+    }
+
+  @Test
+  fun `One can not update a doc without an Etag header`(vertx: Vertx) =
+    runBlocking(vertx.dispatcher()) {
+      val docId = UUID.randomUUID().toString()
+      webClient.createDocument(docId)
+      val documentResponse = webClient.getDocument(docId)
+      documentResponse.body().toString().let { assert(it == "test") }
+      val statusCode = webClient
+        .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId")
+        .putHeader("Content-Type", "text/plain")
+        .sendBuffer(Buffer.buffer("test2"))
+        .await().statusCode()
+      assert(statusCode == 428)
     }
 
 
