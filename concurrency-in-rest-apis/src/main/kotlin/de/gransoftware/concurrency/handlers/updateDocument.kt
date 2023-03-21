@@ -2,10 +2,10 @@ package de.gransoftware.concurrency.handlers
 
 import de.gransoftware.concurrency.DataStore
 import de.gransoftware.concurrency.DataStore.Document
+import de.gransoftware.concurrency.etag
 import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.core.json.jsonObjectOf
 import java.time.Instant
-import java.time.OffsetDateTime
 
 suspend fun saveDocument(ctx: RoutingContext) {
   val newContent = ctx.body().asString()
@@ -30,8 +30,9 @@ private fun updateDocument(ctx: RoutingContext, document: Document, newContent: 
     ctx.response().setStatusCode(428).end(jsonObjectOf("message" to "If-Match header is required").encode())
     return
   }
-  val lastUpdatedAt = OffsetDateTime.parse(ctx.request().getHeader("If-Match"))
-  if (lastUpdatedAt.toInstant() != document.lastUpdatedAt) {
+  val currentEtag = document.etag
+  val etagFromRequest = ctx.request().getHeader("If-Match")
+  if (etagFromRequest != currentEtag) {
     ctx.response().setStatusCode(412)
       .end(jsonObjectOf("message" to "Document has been updated in the meantime").encode())
     return

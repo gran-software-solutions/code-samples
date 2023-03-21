@@ -50,6 +50,34 @@ class TestMainVerticle {
     documentResponse.body().await().toString().let { assert(it == "test") }
   }
 
+  @Test
+  fun `updating a doc with a correct Etag is possible, with wrong one - not`(vertx: Vertx) = runBlocking(vertx.dispatcher()) {
+    val httpClient = vertx.createHttpClient()
+    val docId = UUID.randomUUID().toString()
+    httpClient.createDocument(docId)
+    val documentResponse = httpClient.getDocument(docId)
+    documentResponse.body().await().toString().let { assert(it == "test") }
+    val etag = documentResponse.getHeader("ETag")
+    var updateResponse = httpClient
+      .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId").await()
+      .putHeader("Content-Type", "text/plain")
+      .putHeader("If-Match", etag)
+      .send("test2")
+      .await()
+
+    assert(updateResponse.statusCode() == 204)
+
+    updateResponse = httpClient
+      .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId").await()
+      .putHeader("Content-Type", "text/plain")
+      .putHeader("If-Match", etag)
+      .send("test2")
+      .await()
+
+    assert(updateResponse.statusCode() == 412)
+  }
+
+
   private suspend fun HttpClient.createDocument(docId: String): HttpClientResponse {
     val response = this
       .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId").await()
@@ -67,6 +95,7 @@ class TestMainVerticle {
       .send()
       .await()
     assert(response.statusCode() == 200)
+    assert(!response.getHeader("ETag").isNullOrBlank())
     return response
   }
 }
