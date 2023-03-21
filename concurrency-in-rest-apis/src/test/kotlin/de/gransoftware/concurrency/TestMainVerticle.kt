@@ -1,9 +1,10 @@
 package de.gransoftware.concurrency
 
 import io.vertx.core.Vertx
-import io.vertx.core.http.HttpClient
-import io.vertx.core.http.HttpClientResponse
+import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpMethod
+import io.vertx.ext.web.client.HttpResponse
+import io.vertx.ext.web.client.WebClient
 import io.vertx.junit5.VertxExtension
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
@@ -24,73 +25,73 @@ class TestMainVerticle {
 
   @Test
   fun `getDocument returns 404 for no document found`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
-    val response = vertx.createHttpClient()
-      .request(HttpMethod.GET, 8888, "localhost", "/documents/${UUID.randomUUID()}")
-      .await().send().await()
-    assert(response.statusCode() == 404)
+    val webClient = WebClient.create(vertx)
+    webClient.get(8888, "localhost", "/documents/${UUID.randomUUID()}")
+      .send()
+      .await()
+      .let { assert(it.statusCode() == 404) }
   }
 
   @Test
   fun `createDocument should create a doc`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
-    val httpClient = vertx.createHttpClient()
-
+    val webClient = WebClient.create(vertx)
     val docId = UUID.randomUUID().toString()
-    val response = httpClient.createDocument(docId)
+    val response = webClient.createDocument(docId)
     val location = response.getHeader("Location")
     assert(location == "http://localhost:8888/documents/$docId")
   }
 
   @Test
-  fun `getDocument should get a created doc`(vertx: Vertx) = runBlocking(vertx.dispatcher()) {
-    val httpClient = vertx.createHttpClient()
+  fun `getDocument should get a created doc`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
+    val webClient = WebClient.create(vertx)
     val docId = UUID.randomUUID().toString()
-    val response = httpClient.createDocument(docId)
-    val location = response.getHeader("Location")
-    val documentResponse = httpClient.getDocument(docId)
-    documentResponse.body().await().toString().let { assert(it == "test") }
+    val response = webClient.createDocument(docId)
+    val documentResponse = webClient.getDocument(docId)
+    documentResponse.body().toString().let { assert(it == "test") }
   }
 
   @Test
-  fun `updating a doc with a correct Etag is possible, with wrong one - not`(vertx: Vertx) = runBlocking(vertx.dispatcher()) {
-    val httpClient = vertx.createHttpClient()
-    val docId = UUID.randomUUID().toString()
-    httpClient.createDocument(docId)
-    val documentResponse = httpClient.getDocument(docId)
-    documentResponse.body().await().toString().let { assert(it == "test") }
-    val etag = documentResponse.getHeader("ETag")
-    var updateResponse = httpClient
-      .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId").await()
-      .putHeader("Content-Type", "text/plain")
-      .putHeader("If-Match", etag)
-      .send("test2")
-      .await()
+  fun `updating a doc with a correct Etag is possible, with wrong one - not`(vertx: Vertx) =
+    runBlocking(vertx.dispatcher()) {
+      val webClient = WebClient.create(vertx)
+      val docId = UUID.randomUUID().toString()
+      webClient.createDocument(docId)
+      val documentResponse = webClient.getDocument(docId)
+      documentResponse.body().toString().let { assert(it == "test") }
+      val etag = documentResponse.getHeader("ETag")
+      var updateResponse = webClient
+        .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId")
+        .putHeader("Content-Type", "text/plain")
+        .putHeader("If-Match", etag)
+        .sendBuffer(Buffer.buffer("test2"))
+        .await()
 
-    assert(updateResponse.statusCode() == 204)
+      assert(updateResponse.statusCode() == 204)
 
-    updateResponse = httpClient
-      .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId").await()
-      .putHeader("Content-Type", "text/plain")
-      .putHeader("If-Match", etag)
-      .send("test2")
-      .await()
+      updateResponse = webClient
+        .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId")
+        .putHeader("Content-Type", "text/plain")
+        .putHeader("If-Match", etag)
+        .sendBuffer(Buffer.buffer("test3"))
+        .await()
 
-    assert(updateResponse.statusCode() == 412)
-  }
+      assert(updateResponse.statusCode() == 412)
+    }
 
 
-  private suspend fun HttpClient.createDocument(docId: String): HttpClientResponse {
+  private suspend fun WebClient.createDocument(docId: String): HttpResponse<Buffer> {
     val response = this
-      .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId").await()
+      .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId")
       .putHeader("Content-Type", "text/plain")
-      .send("test")
+      .sendBuffer(Buffer.buffer("test"))
       .await()
     assert(response.statusCode() == 204)
     return response
   }
 
-  private suspend fun HttpClient.getDocument(docId: String): HttpClientResponse {
+  private suspend fun WebClient.getDocument(docId: String): HttpResponse<Buffer> {
     val response = this
-      .request(HttpMethod.GET, 8888, "localhost", "/documents/$docId").await()
+      .request(HttpMethod.GET, 8888, "localhost", "/documents/$docId")
       .putHeader("Accept", "text/plain")
       .send()
       .await()
