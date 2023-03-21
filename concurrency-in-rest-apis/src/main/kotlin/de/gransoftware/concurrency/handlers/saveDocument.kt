@@ -2,17 +2,21 @@ package de.gransoftware.concurrency.handlers
 
 import de.gransoftware.concurrency.DataStore
 import de.gransoftware.concurrency.DataStore.Document
+import de.gransoftware.concurrency.asErrorMsg
 import de.gransoftware.concurrency.etag
+import de.gransoftware.concurrency.handlers.HttpStatus.BAD_REQUEST
+import de.gransoftware.concurrency.handlers.HttpStatus.NO_CONTENT
+import de.gransoftware.concurrency.handlers.HttpStatus.PRECONDITION_FAILED
+import de.gransoftware.concurrency.handlers.HttpStatus.PRECONDITION_REQUIRED
+import de.gransoftware.concurrency.location
 import io.vertx.ext.web.RoutingContext
-import io.vertx.kotlin.core.json.jsonObjectOf
 import java.time.Instant
 
 suspend fun saveDocument(ctx: RoutingContext) {
   val newContent = ctx.body().asString()
 
   if (newContent.isNullOrEmpty()) {
-    ctx.response().setStatusCode(HttpStatus.BAD_REQUEST)
-      .end(jsonObjectOf("message" to "You need to pass some content!").encode())
+    ctx.response().setStatusCode(BAD_REQUEST).end("You need to pass some content!".asErrorMsg())
     return
   }
 
@@ -29,30 +33,23 @@ suspend fun saveDocument(ctx: RoutingContext) {
 private fun updateDocument(ctx: RoutingContext, document: Document, newContent: String) {
   val requestETag = ctx.request().getHeader("If-Match")
   if (requestETag.isNullOrBlank()) {
-    ctx.response().setStatusCode(HttpStatus.PRECONDITION_REQUIRED)
-      .end(jsonObjectOf("message" to "If-Match header is required").encode())
+    ctx.response().setStatusCode(PRECONDITION_REQUIRED).end("If-Match header is required".asErrorMsg())
     return
   }
-  val currentEtag = document.etag
-  if (requestETag != currentEtag) {
-    ctx.response().setStatusCode(HttpStatus.PRECONDITION_FAILED)
-      .end(jsonObjectOf("message" to "Document has been updated in the meantime").encode())
+  if (requestETag != document.etag) {
+    ctx.response().setStatusCode(PRECONDITION_FAILED).end("Document has been updated in the meantime".asErrorMsg())
     return
   } else {
     DataStore.put(
       document.copy(content = newContent, lastUpdatedAt = Instant.now())
     )
-    ctx.response().putHeader("Location", ctx.location("/documents/${document.id}")).setStatusCode(HttpStatus.NO_CONTENT)
+    ctx.response().putHeader("Location", ctx.location("/documents/${document.id}")).setStatusCode(NO_CONTENT)
       .end()
   }
 }
 
 private fun insertDocument(documentId: String, content: String, ctx: RoutingContext) {
   DataStore.put(Document(documentId, content, Instant.now()))
-  ctx.response().putHeader("Location", ctx.location("/documents/$documentId")).setStatusCode(HttpStatus.NO_CONTENT)
-    .end()
+  ctx.response().putHeader("Location", ctx.location("/documents/$documentId")).setStatusCode(NO_CONTENT).end()
 }
 
-private fun RoutingContext.location(path: String): String {
-  return "${request().absoluteURI().removeSuffix(request().path())}$path"
-}

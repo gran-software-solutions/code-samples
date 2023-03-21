@@ -2,6 +2,7 @@ package de.gransoftware.concurrency
 
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.openapi.Operation
+import io.vertx.kotlin.core.json.jsonObjectOf
 import io.vertx.kotlin.coroutines.dispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,3 +22,9 @@ fun Operation.coHandler(fn: suspend (RoutingContext) -> Unit): Operation {
 
 val DataStore.Document.etag: String
   get() = """"${sha256("""$id:${lastUpdatedAt}:text/plain""")}""""
+
+fun RoutingContext.location(path: String): String {
+  return "${request().absoluteURI().removeSuffix(request().path())}$path"
+}
+
+fun String.asErrorMsg() = jsonObjectOf("message" to this).encode()
