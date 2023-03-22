@@ -21,10 +21,10 @@ fun Operation.coHandler(fn: suspend (RoutingContext) -> Unit): Operation {
 }
 
 val DataStore.Document.etag: String
-  get() = """"${sha256("""$id:${lastUpdatedAt}:text/plain""")}""""
+  get() = """"W/${sha256("""$id:${lastUpdatedAt}:text/plain""")}""""
 
 fun RoutingContext.location(path: String): String {
   return "${request().absoluteURI().removeSuffix(request().path())}$path"
 }
 
-fun String.asErrorMsg() = jsonObjectOf("message" to this).encode()
+fun String.asErrorMsg(): String = jsonObjectOf("message" to this).encode()
