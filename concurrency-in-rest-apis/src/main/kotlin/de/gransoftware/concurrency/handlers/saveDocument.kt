@@ -28,39 +28,22 @@ suspend fun saveDocument(ctx: RoutingContext) {
     insertDocument(documentId, newContent)
     response.end()
   } else {
-    runCatching {
-      updateDocument(ctx, document, newContent)
-    }.onFailure {
-      when (it) {
-        is PreconditionRequiredException -> ctx.response().setStatusCode(PRECONDITION_REQUIRED)
-          .end("If-Match header is required".asErrorMsg())
-
-        is PreconditionFailedException -> ctx.response().setStatusCode(PRECONDITION_FAILED)
-          .end("Document has been updated in the meantime".asErrorMsg())
-
-        else -> throw it
-      }
-    }.onSuccess {
+    val requestETag = ctx.request().getHeader("If-Match")
+    if (requestETag.isNullOrBlank()) {
+      ctx.response().setStatusCode(PRECONDITION_REQUIRED)
+        .end("If-Match header is required".asErrorMsg())
+      return
+    }
+    if (requestETag != document.etag) {
+      ctx.response().setStatusCode(PRECONDITION_FAILED)
+        .end("Document has been updated in the meantime".asErrorMsg())
+    } else {
+      DataStore.put(document.copy(content = newContent, lastUpdatedAt = Instant.now()))
       response.end()
     }
-  }
-}
-
-private fun updateDocument(ctx: RoutingContext, document: Document, newContent: String) {
-  val requestETag = ctx.request().getHeader("If-Match")
-  if (requestETag.isNullOrBlank()) {
-    throw PreconditionRequiredException()
-  }
-  if (requestETag != document.etag) {
-    throw PreconditionFailedException()
-  } else {
-    DataStore.put(document.copy(content = newContent, lastUpdatedAt = Instant.now()))
   }
 }
 
 private fun insertDocument(documentId: String, content: String) {
   DataStore.put(Document(documentId, content, Instant.now()))
 }
-
-class PreconditionFailedException : RuntimeException()
-class PreconditionRequiredException : RuntimeException()
