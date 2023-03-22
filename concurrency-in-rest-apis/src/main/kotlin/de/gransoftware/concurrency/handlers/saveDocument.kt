@@ -23,33 +23,44 @@ suspend fun saveDocument(ctx: RoutingContext) {
   val documentId = ctx.pathParam("id")
   val document = DataStore.get(documentId)
 
+  val response = ctx.response().putHeader("Location", ctx.location("/documents/$documentId")).setStatusCode(NO_CONTENT)
   if (document == null) {
-    insertDocument(documentId, newContent, ctx)
+    insertDocument(documentId, newContent)
+    response.end()
   } else {
-    updateDocument(ctx, document, newContent)
+    runCatching {
+      updateDocument(ctx, document, newContent)
+    }.onFailure {
+      when (it) {
+        is PreconditionRequiredException -> ctx.response().setStatusCode(PRECONDITION_REQUIRED)
+          .end("If-Match header is required".asErrorMsg())
+
+        is PreconditionFailedException -> ctx.response().setStatusCode(PRECONDITION_FAILED)
+          .end("Document has been updated in the meantime".asErrorMsg())
+
+        else -> throw it
+      }
+    }.onSuccess {
+      response.end()
+    }
   }
 }
 
 private fun updateDocument(ctx: RoutingContext, document: Document, newContent: String) {
   val requestETag = ctx.request().getHeader("If-Match")
   if (requestETag.isNullOrBlank()) {
-    ctx.response().setStatusCode(PRECONDITION_REQUIRED).end("If-Match header is required".asErrorMsg())
-    return
+    throw PreconditionRequiredException()
   }
   if (requestETag != document.etag) {
-    ctx.response().setStatusCode(PRECONDITION_FAILED).end("Document has been updated in the meantime".asErrorMsg())
-    return
+    throw PreconditionFailedException()
   } else {
-    DataStore.put(
-      document.copy(content = newContent, lastUpdatedAt = Instant.now())
-    )
-    ctx.response().putHeader("Location", ctx.location("/documents/${document.id}")).setStatusCode(NO_CONTENT)
-      .end()
+    DataStore.put(document.copy(content = newContent, lastUpdatedAt = Instant.now()))
   }
 }
 
-private fun insertDocument(documentId: String, content: String, ctx: RoutingContext) {
+private fun insertDocument(documentId: String, content: String) {
   DataStore.put(Document(documentId, content, Instant.now()))
-  ctx.response().putHeader("Location", ctx.location("/documents/$documentId")).setStatusCode(NO_CONTENT).end()
 }
 
+class PreconditionFailedException : RuntimeException()
+class PreconditionRequiredException : RuntimeException()
