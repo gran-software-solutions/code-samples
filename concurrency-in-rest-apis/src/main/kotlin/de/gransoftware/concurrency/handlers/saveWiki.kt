@@ -1,7 +1,7 @@
 package de.gransoftware.concurrency.handlers
 
-import de.gransoftware.concurrency.DataStore
-import de.gransoftware.concurrency.DataStore.Document
+import de.gransoftware.concurrency.WikiStore
+import de.gransoftware.concurrency.WikiStore.Wiki
 import de.gransoftware.concurrency.asErrorMsg
 import de.gransoftware.concurrency.etag
 import de.gransoftware.concurrency.handlers.HttpStatus.BAD_REQUEST
@@ -12,7 +12,7 @@ import de.gransoftware.concurrency.location
 import io.vertx.ext.web.RoutingContext
 import java.time.Instant
 
-suspend fun saveDocument(ctx: RoutingContext) {
+fun saveWiki(ctx: RoutingContext) {
   val newContent = ctx.body().asString()
 
   if (newContent.isNullOrEmpty()) {
@@ -20,12 +20,12 @@ suspend fun saveDocument(ctx: RoutingContext) {
     return
   }
 
-  val documentId = ctx.pathParam("id")
-  val document = DataStore.get(documentId)
+  val wikiId = ctx.pathParam("id")
+  val wiki = WikiStore.get(wikiId)
 
-  val response = ctx.response().putHeader("Location", ctx.location("/documents/$documentId")).setStatusCode(NO_CONTENT)
-  if (document == null) {
-    insertDocument(documentId, newContent)
+  val response = ctx.response().putHeader("Location", ctx.location("/wikis/$wikiId")).setStatusCode(NO_CONTENT)
+  if (wiki == null) {
+    insertWiki(wikiId, newContent)
     response.end()
   } else {
     val requestETag = ctx.request().getHeader("If-Match")
@@ -34,16 +34,16 @@ suspend fun saveDocument(ctx: RoutingContext) {
         .end("If-Match header is required".asErrorMsg())
       return
     }
-    if (requestETag != document.etag) {
+    if (requestETag != wiki.etag) {
       ctx.response().setStatusCode(PRECONDITION_FAILED)
-        .end("Document has been updated in the meantime".asErrorMsg())
+        .end("Wiki has been updated in the meantime".asErrorMsg())
     } else {
-      DataStore.put(document.copy(content = newContent, lastUpdatedAt = Instant.now()))
+      WikiStore.put(wiki.copy(content = newContent, lastUpdatedAt = Instant.now()))
       response.end()
     }
   }
 }
 
-private fun insertDocument(documentId: String, content: String) {
-  DataStore.put(Document(documentId, content, Instant.now()))
+private fun insertWiki(wikiId: String, content: String) {
+  WikiStore.put(Wiki(wikiId, content, Instant.now()))
 }

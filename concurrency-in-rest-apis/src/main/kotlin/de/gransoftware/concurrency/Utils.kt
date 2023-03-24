@@ -20,7 +20,7 @@ fun Operation.coHandler(fn: suspend (RoutingContext) -> Unit): Operation {
   }
 }
 
-val DataStore.Document.etag: String
+val WikiStore.Wiki.etag: String
   get() = """"W/${sha256("""$id:${lastUpdatedAt}:text/plain""")}""""
 
 fun RoutingContext.location(path: String): String {

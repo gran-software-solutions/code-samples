@@ -1,12 +1,12 @@
 openapi: 3.0.3
 info:
-  title: Content
-  description: Content
+  title: Wiki Management API
+  description: Wiki Management API
   version: 1.0.0
 paths:
-  /documents/{id}:
+  /wikis/{id}:
     get:
-      operationId: getDocument
+      operationId: getWiki
       parameters:
         - name: id
           in: path
@@ -26,7 +26,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
     put:
-      operationId: saveDocument
+      operationId: saveWiki
       parameters:
         - name: id
           in: path
@@ -61,7 +61,7 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
     404:
-      description: No such document
+      description: No such wiki
       content:
         application/json:
           schema:

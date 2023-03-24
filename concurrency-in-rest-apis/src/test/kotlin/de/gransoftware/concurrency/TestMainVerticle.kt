@@ -30,39 +30,39 @@ class TestMainVerticle {
   }
 
   @Test
-  fun `getDocument returns 404 for no document found`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
-    webClient.get(8888, "localhost", "/documents/${UUID.randomUUID()}")
+  fun `getWiki returns 404 for no wiki found`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
+    webClient.get(8888, "localhost", "/wikis/${UUID.randomUUID()}")
       .send()
       .await()
       .let { assert(it.statusCode() == HttpStatus.NOT_FOUND) }
   }
 
   @Test
-  fun `createDocument should create a doc`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
-    val docId = UUID.randomUUID().toString()
-    val response = webClient.createDocument(docId)
+  fun `saveWiki should create a new wiki`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
+    val wikiId = UUID.randomUUID().toString()
+    val response = webClient.createWiki(wikiId)
     val location = response.getHeader("Location")
-    assert(location == "http://localhost:8888/documents/$docId")
+    assert(location == "http://localhost:8888/wikis/$wikiId")
   }
 
   @Test
-  fun `getDocument should get a created doc`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
-    val docId = UUID.randomUUID().toString()
-    webClient.createDocument(docId)
-    val documentResponse = webClient.getDocument(docId)
-    documentResponse.body().toString().let { assert(it == "test") }
+  fun `getWiki should get a created wiki`(vertx: Vertx): Unit = runBlocking(vertx.dispatcher()) {
+    val wikiId = UUID.randomUUID().toString()
+    webClient.createWiki(wikiId)
+    val wikiResponse = webClient.getWiki(wikiId)
+    wikiResponse.body().toString().let { assert(it == "test") }
   }
 
   @Test
-  fun `updating a doc with a correct Etag is possible, with wrong one - not`(vertx: Vertx) =
+  fun `updating a wiki with a correct Etag is possible, with wrong one - not`(vertx: Vertx) =
     runBlocking(vertx.dispatcher()) {
-      val docId = UUID.randomUUID().toString()
-      webClient.createDocument(docId)
-      val documentResponse = webClient.getDocument(docId)
-      documentResponse.body().toString().let { assert(it == "test") }
-      val etag = documentResponse.getHeader("ETag")
+      val wikiId = UUID.randomUUID().toString()
+      webClient.createWiki(wikiId)
+      val wikiResponse = webClient.getWiki(wikiId)
+      wikiResponse.body().toString().let { assert(it == "test") }
+      val etag = wikiResponse.getHeader("ETag")
       var updateResponse = webClient
-        .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId")
+        .request(HttpMethod.PUT, 8888, "localhost", "/wikis/$wikiId")
         .putHeader("Content-Type", "text/plain")
         .putHeader("If-Match", etag)
         .sendBuffer(Buffer.buffer("test2"))
@@ -71,7 +71,7 @@ class TestMainVerticle {
       assert(updateResponse.statusCode() == 204)
 
       updateResponse = webClient
-        .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId")
+        .request(HttpMethod.PUT, 8888, "localhost", "/wikis/$wikiId")
         .putHeader("Content-Type", "text/plain")
         .putHeader("If-Match", etag)
         .sendBuffer(Buffer.buffer("test3"))
@@ -81,14 +81,14 @@ class TestMainVerticle {
     }
 
   @Test
-  fun `One can not update a doc without an Etag header`(vertx: Vertx) =
+  fun `One can not update a wiki without an Etag header`(vertx: Vertx) =
     runBlocking(vertx.dispatcher()) {
-      val docId = UUID.randomUUID().toString()
-      webClient.createDocument(docId)
-      val documentResponse = webClient.getDocument(docId)
-      documentResponse.body().toString().let { assert(it == "test") }
+      val wikiId = UUID.randomUUID().toString()
+      webClient.createWiki(wikiId)
+      val wikiResponse = webClient.getWiki(wikiId)
+      wikiResponse.body().toString().let { assert(it == "test") }
       val statusCode = webClient
-        .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId")
+        .request(HttpMethod.PUT, 8888, "localhost", "/wikis/$wikiId")
         .putHeader("Content-Type", "text/plain")
         .sendBuffer(Buffer.buffer("test2"))
         .await().statusCode()
@@ -96,9 +96,9 @@ class TestMainVerticle {
     }
 
 
-  private suspend fun WebClient.createDocument(docId: String): HttpResponse<Buffer> {
+  private suspend fun WebClient.createWiki(wikiId: String): HttpResponse<Buffer> {
     val response = this
-      .request(HttpMethod.PUT, 8888, "localhost", "/documents/$docId")
+      .request(HttpMethod.PUT, 8888, "localhost", "/wikis/$wikiId")
       .putHeader("Content-Type", "text/plain")
       .sendBuffer(Buffer.buffer("test"))
       .await()
@@ -106,9 +106,9 @@ class TestMainVerticle {
     return response
   }
 
-  private suspend fun WebClient.getDocument(docId: String): HttpResponse<Buffer> {
+  private suspend fun WebClient.getWiki(docId: String): HttpResponse<Buffer> {
     val response = this
-      .request(HttpMethod.GET, 8888, "localhost", "/documents/$docId")
+      .request(HttpMethod.GET, 8888, "localhost", "/wikis/$docId")
       .putHeader("Accept", "text/plain")
       .send()
       .await()
