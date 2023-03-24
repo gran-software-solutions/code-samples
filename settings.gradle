@@ -1,2 +1,3 @@
 rootProject.name = 'code-samples'
 include 'concurrency-in-rest-apis'
+include 'use-case-app'
