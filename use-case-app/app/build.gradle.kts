@@ -12,6 +12,7 @@ plugins {
 
     // Apply the application plugin to add support for building a CLI application in Java.
     application
+    kotlin("plugin.serialization") version "1.8.10"
 }
 
 repositories {
@@ -28,6 +29,12 @@ dependencies {
 
     implementation("com.michael-bull.kotlin-result:kotlin-result:1.1.16")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
+    implementation("com.github.ajalt.clikt:clikt:3.5.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+    implementation("com.charleskorn.kaml:kaml:0.53.0")
+    implementation("org.kodein.di:kodein-di:7.19.0")
 }
 
 application {
