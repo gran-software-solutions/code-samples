@@ -75,39 +75,21 @@ class WeatherCommand : CliktCommand() {
 
             val (weather, placeInfo) = weatherOutcome as Outcome.Success<Weather> to placeInfoOutcome as Outcome.Success<PlaceInfo>
 
+            val weatherAndCity = WeatherAndCity(weather.value.let {
+                WeatherAndCity.Weather(
+                    it.type,
+                    it.temperature,
+                    it.feelsLike,
+                    it.minTemperature,
+                    it.maxTemperature,
+                    it.pressure,
+                    it.humidity,
+                    it.windSpeed
+                )
+            }, placeInfo.value.let { WeatherAndCity.City(it.name, it.country) })
             when (format) {
-                "json" -> {
-                    val weatherAndCity = WeatherAndCity(weather.value.let {
-                        WeatherAndCity.Weather(
-                            it.type,
-                            it.temperature,
-                            it.feelsLike,
-                            it.minTemperature,
-                            it.maxTemperature,
-                            it.pressure,
-                            it.humidity,
-                            it.windSpeed
-                        )
-                    }, placeInfo.value.let { WeatherAndCity.City(it.name, it.country) })
-                    echo(Json.encodeToString(weatherAndCity))
-                }
-
-                "yaml" -> {
-                    val weatherAndCity = WeatherAndCity(weather.value.let {
-                        WeatherAndCity.Weather(
-                            it.type,
-                            it.temperature,
-                            it.feelsLike,
-                            it.minTemperature,
-                            it.maxTemperature,
-                            it.pressure,
-                            it.humidity,
-                            it.windSpeed
-                        )
-                    }, placeInfo.value.let { WeatherAndCity.City(it.name, it.country) })
-                    echo(Yaml.default.encodeToString(weatherAndCity))
-                }
-
+                "json" -> echo(Json.encodeToString(weatherAndCity))
+                "yaml" -> echo(Yaml.default.encodeToString(weatherAndCity))
                 else -> echo(err = true, message = "Unknown format: $format")
             }
 
