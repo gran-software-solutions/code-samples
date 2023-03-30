@@ -5,10 +5,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 class WeatherAndCity(
     val weather: Weather,
-    val city: City
+    val placeInfo: PlaceInfo
 ) {
     @Serializable
-    class City(
+    class PlaceInfo(
         val name: String,
         val country: String
     )

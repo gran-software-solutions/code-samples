@@ -8,12 +8,12 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.float
 import de.gransoftware.app.ui.WeatherAndCity
 import de.gransoftware.app.usecase.Coordinates
-import de.gransoftware.app.usecase.ports.out.GetPlaceInfoOutPort
-import de.gransoftware.app.usecase.ports.out.GetWeatherOutPort
 import de.gransoftware.app.usecase.Outcome
 import de.gransoftware.app.usecase.PlaceInfo
 import de.gransoftware.app.usecase.UseCaseExecutor
 import de.gransoftware.app.usecase.Weather
+import de.gransoftware.app.usecase.ports.out.GetPlaceInfoOutPort
+import de.gransoftware.app.usecase.ports.out.GetWeatherOutPort
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
@@ -75,7 +75,7 @@ class WeatherCommand : CliktCommand() {
 
             val (weather, placeInfo) = weatherOutcome as Outcome.Success<Weather> to placeInfoOutcome as Outcome.Success<PlaceInfo>
 
-            val weatherAndCity = WeatherAndCity(weather.value.let {
+            val weatherAndPlaceInfo = WeatherAndCity(weather.value.let {
                 WeatherAndCity.Weather(
                     it.type,
                     it.temperature,
@@ -86,10 +86,10 @@ class WeatherCommand : CliktCommand() {
                     it.humidity,
                     it.windSpeed
                 )
-            }, placeInfo.value.let { WeatherAndCity.City(it.name, it.country) })
+            }, placeInfo.value.let { WeatherAndCity.PlaceInfo(it.name, it.country) })
             when (format) {
-                "json" -> echo(Json.encodeToString(weatherAndCity))
-                "yaml" -> echo(Yaml.default.encodeToString(weatherAndCity))
+                "json" -> echo(Json.encodeToString(weatherAndPlaceInfo))
+                "yaml" -> echo(Yaml.default.encodeToString(weatherAndPlaceInfo))
                 else -> echo(err = true, message = "Unknown format: $format")
             }
 
