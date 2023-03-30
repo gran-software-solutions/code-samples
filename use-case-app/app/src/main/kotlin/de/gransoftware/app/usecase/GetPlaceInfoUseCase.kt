@@ -1,6 +1,7 @@
 package de.gransoftware.app.usecase
 
-import de.gransoftware.app.usecase.GetPlaceInfoOutPort.Input
+import de.gransoftware.app.usecase.ports.out.GetPlaceInfoOutPort
+import de.gransoftware.app.usecase.ports.out.GetPlaceInfoOutPort.Input
 
 class GetPlaceInfoUseCase(private val getPlaceInfo: GetPlaceInfoOutPort) : UseCase<Input, PlaceInfo> {
 

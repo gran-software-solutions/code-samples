@@ -1,6 +1,6 @@
-package de.gransoftware.app.ports
+package de.gransoftware.app.ports.out
 
-import de.gransoftware.app.usecase.GetWeatherOutPort
+import de.gransoftware.app.usecase.ports.out.GetWeatherOutPort
 import de.gransoftware.app.usecase.Outcome
 import de.gransoftware.app.usecase.Weather
 import kotlinx.coroutines.future.await

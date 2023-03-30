@@ -8,8 +8,8 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.float
 import de.gransoftware.app.ui.WeatherAndCity
 import de.gransoftware.app.usecase.Coordinates
-import de.gransoftware.app.usecase.GetPlaceInfoOutPort
-import de.gransoftware.app.usecase.GetWeatherOutPort
+import de.gransoftware.app.usecase.ports.out.GetPlaceInfoOutPort
+import de.gransoftware.app.usecase.ports.out.GetWeatherOutPort
 import de.gransoftware.app.usecase.Outcome
 import de.gransoftware.app.usecase.PlaceInfo
 import de.gransoftware.app.usecase.UseCaseExecutor

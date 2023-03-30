@@ -1,6 +1,6 @@
-package de.gransoftware.app.ports
+package de.gransoftware.app.ports.out
 
-import de.gransoftware.app.usecase.GetPlaceInfoOutPort
+import de.gransoftware.app.usecase.ports.out.GetPlaceInfoOutPort
 import de.gransoftware.app.usecase.Outcome
 import kotlinx.coroutines.future.await
 import kotlinx.serialization.Serializable

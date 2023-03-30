@@ -1,7 +1,7 @@
 package de.gransoftware.app
 
-import de.gransoftware.app.ports.OpenWeatherMapGetPlaceInfo
-import de.gransoftware.app.ports.OpenWeatherMapGetWeather
+import de.gransoftware.app.ports.out.OpenWeatherMapGetPlaceInfo
+import de.gransoftware.app.ports.out.OpenWeatherMapGetWeather
 import de.gransoftware.app.usecase.GetPlaceInfoUseCase
 import de.gransoftware.app.usecase.GetWeatherUseCase
 import kotlinx.serialization.json.Json
