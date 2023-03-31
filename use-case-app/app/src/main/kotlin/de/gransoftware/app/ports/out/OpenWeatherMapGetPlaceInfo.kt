@@ -21,7 +21,7 @@ class OpenWeatherMapGetPlaceInfo(private val json: Json) : GetPlaceInfoOutPort {
         val country: String
     )
 
-    override suspend fun invoke(input: GetPlaceInfoOutPort.Input): Outcome<DomainPlaceInfo> {
+    override suspend operator fun invoke(input: GetPlaceInfoOutPort.Input): Outcome<DomainPlaceInfo> {
         val httpClient: HttpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build()

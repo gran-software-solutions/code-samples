@@ -41,7 +41,7 @@ class OpenWeatherMapGetWeather(private val json: Json) : GetWeatherOutPort {
         class Wind(val speed: Float)
     }
 
-    override suspend fun invoke(input: GetWeatherOutPort.Input): Outcome<Weather> {
+    override suspend operator fun invoke(input: GetWeatherOutPort.Input): Outcome<Weather> {
         val httpClient: HttpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build()
