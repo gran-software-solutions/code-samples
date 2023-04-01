@@ -18,6 +18,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.kodein.di.DI
 import org.kodein.di.direct
 import org.kodein.di.instance
 
@@ -44,57 +45,61 @@ class WeatherCommand : CliktCommand() {
         completionCandidates = CompletionCandidates.Fixed("json", "yaml")
     ).required()
 
+    private lateinit var di: DI
+
     override fun run() = runBlocking<Unit> {
-        val di = configureDependencyInjection()
+        di = configureDependencyInjection()
         runCatching {
-            val weatherOutcome = async {
-                UseCaseExecutor.execute(
-                    useCase = di.direct.instance(),
-                    toContext = { },
-                    toInput = { GetWeatherOutPort.Input(openWeatherMapApiKey, Coordinates(latitude, longitude)) },
-                    toResponse = { it: Outcome<Weather> -> it }
-                )
-            }
-            val placeInfoOutcome = async {
-                UseCaseExecutor.execute(
-                    useCase = di.direct.instance(),
-                    toContext = { },
-                    toInput = { GetPlaceInfoOutPort.Input(openWeatherMapApiKey, Coordinates(latitude, longitude)) },
-                    toResponse = { it: Outcome<PlaceInfo> -> it }
-                )
-            }
-            weatherOutcome.await() to placeInfoOutcome.await()
+            async { getWeather() }.await() to async { getPlaceInfo() }.await()
         }.onSuccess { (weatherOutcome, placeInfoOutcome) ->
-            if (weatherOutcome is Outcome.Error || placeInfoOutcome is Outcome.Error) {
+            if (weatherOutcome is Outcome.Success && placeInfoOutcome is Outcome.Success) {
+                displayWeatherAndPlaceInfo(weatherOutcome.value, placeInfoOutcome.value)
+            } else {
                 echo(
                     err = true,
                     message = "Error, not all information could be retrieved: ${(weatherOutcome as? Outcome.Error)?.errorType} | ${(placeInfoOutcome as? Outcome.Error)?.errorType}"
                 )
                 return@onSuccess
             }
-
-            val (weather, placeInfo) = weatherOutcome as Outcome.Success<Weather> to placeInfoOutcome as Outcome.Success<PlaceInfo>
-
-            val weatherAndPlaceInfo = WeatherAndCity(weather.value.let {
-                WeatherAndCity.Weather(
-                    it.type,
-                    it.temperature,
-                    it.feelsLike,
-                    it.minTemperature,
-                    it.maxTemperature,
-                    it.pressure,
-                    it.humidity,
-                    it.windSpeed
-                )
-            }, placeInfo.value.let { WeatherAndCity.PlaceInfo(it.name, it.country) })
-            when (format) {
-                "json" -> echo(Json.encodeToString(weatherAndPlaceInfo))
-                "yaml" -> echo(Yaml.default.encodeToString(weatherAndPlaceInfo))
-                else -> echo(err = true, message = "Unknown format: $format")
-            }
-
         }.onFailure { echo(err = true, message = "Error: ${it.message}") }
     }
+
+    private fun displayWeatherAndPlaceInfo(
+        weather: Weather,
+        placeInfo: PlaceInfo
+    ) {
+        val weatherAndPlaceInfo = WeatherAndCity(weather.let {
+            WeatherAndCity.Weather(
+                it.type,
+                it.temperature,
+                it.feelsLike,
+                it.minTemperature,
+                it.maxTemperature,
+                it.pressure,
+                it.humidity,
+                it.windSpeed
+            )
+        }, placeInfo.let { WeatherAndCity.PlaceInfo(it.name, it.country) })
+        when (format) {
+            "json" -> echo(Json.encodeToString(weatherAndPlaceInfo))
+            "yaml" -> echo(Yaml.default.encodeToString(weatherAndPlaceInfo))
+            else -> echo(err = true, message = "Unknown format: $format")
+        }
+    }
+
+    private suspend fun getPlaceInfo() = UseCaseExecutor.execute(
+        useCase = di.direct.instance(),
+        toContext = { },
+        toInput = { GetPlaceInfoOutPort.Input(openWeatherMapApiKey, Coordinates(latitude, longitude)) },
+        toResponse = { it: Outcome<PlaceInfo> -> it }
+    )
+
+    private suspend fun getWeather() = UseCaseExecutor.execute(
+        useCase = di.direct.instance(),
+        toContext = { },
+        toInput = { GetWeatherOutPort.Input(openWeatherMapApiKey, Coordinates(latitude, longitude)) },
+        toResponse = { it: Outcome<Weather> -> it }
+    )
 }
 
 fun main(args: Array<String>) {
