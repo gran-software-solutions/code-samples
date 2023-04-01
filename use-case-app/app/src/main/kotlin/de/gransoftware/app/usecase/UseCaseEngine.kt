@@ -1,7 +1,7 @@
 package de.gransoftware.app.usecase
 
 interface UseCase<in Input, out T : Any> {
-    suspend fun execute(input: Input): Outcome<T>
+    suspend operator fun invoke(input: Input): Outcome<T>
 }
 
 enum class ErrorType {
@@ -23,9 +23,8 @@ object UseCaseExecutor {
     ) =
         toContext.invoke()
             .let(toInput)
-            .let { useCase.execute(it) }
+            .let { useCase(it) }
             .let(toResponse)
-
 
     // some params - no response
     suspend fun <Request, Input> execute(
