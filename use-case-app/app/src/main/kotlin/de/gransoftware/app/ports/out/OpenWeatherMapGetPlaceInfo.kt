@@ -1,11 +1,13 @@
 package de.gransoftware.app.ports.out
 
-import de.gransoftware.app.usecase.ports.out.GetPlaceInfoOutPort
+import de.gransoftware.app.usecase.ErrorType
 import de.gransoftware.app.usecase.Outcome
+import de.gransoftware.app.usecase.ports.out.GetPlaceInfoOutPort
 import kotlinx.coroutines.future.await
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import mu.KotlinLogging
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -14,6 +16,7 @@ import java.time.Duration
 import de.gransoftware.app.usecase.PlaceInfo as DomainPlaceInfo
 
 class OpenWeatherMapGetPlaceInfo(private val json: Json) : GetPlaceInfoOutPort {
+    private val log = KotlinLogging.logger {}
 
     @Serializable
     class PlaceInfo(
@@ -35,7 +38,8 @@ class OpenWeatherMapGetPlaceInfo(private val json: Json) : GetPlaceInfoOutPort {
             require(places.size == 1) { "Expected exactly one result" }
             Outcome.Success(places.first().let { DomainPlaceInfo(it.name, it.country) })
         } else {
-            TODO("Not yet implemented")
+            log.error { "Error while calling OpenWeatherMap Weather API: ${httpResponse.statusCode()} : ${httpResponse.body()}" }
+            return Outcome.Error(ErrorType.WEATHER_API_ERROR)
         }
     }
 }

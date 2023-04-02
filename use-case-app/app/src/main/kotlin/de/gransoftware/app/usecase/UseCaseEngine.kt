@@ -5,7 +5,8 @@ interface UseCase<in Input, out T : Any> {
 }
 
 enum class ErrorType {
-    UNKNOWN
+    WEATHER_API_ERROR,
+    PLACE_INFO_API_ERROR
 }
 
 sealed class Outcome<out T : Any> {
