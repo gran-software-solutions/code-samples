@@ -9,6 +9,6 @@
 
 rootProject.name = "use-case-app"
 include("core")
-include("command-line-app")
+include("command-line-adapter")
 include("weather-provider-adapter")
 include("placeinfo-provider-adapter")
