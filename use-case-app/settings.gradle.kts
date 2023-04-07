@@ -8,4 +8,7 @@
  */
 
 rootProject.name = "use-case-app"
-include("app")
+include("core")
+include("runner")
+include("weather-provider-adapter")
+include("placeinfo-provider-adapter")
