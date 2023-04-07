@@ -4,6 +4,10 @@ This is a sample application that demonstrates how to use
 the [hexagonal architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)) in a real-world
 application.
 
+## Architecture
+
+![Architecture](architecture.png)
+
 What does the application do: it assembles weather and place information from two APIs from https://openweathermap.org/, and displays it in a terminal, either as JSON or as YAML
 
 ## How to run the application
