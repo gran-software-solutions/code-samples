@@ -12,12 +12,12 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.time.Duration
 import de.gransoftware.core.usecase.PlaceInfo as DomainPlaceInfo
 
 class OpenWeatherMapGetPlaceInfo(
     private val json: Json,
-    private val apiKey: String
+    private val apiKey: String,
+    private val httpClient: HttpClient,
 ) : GetPlaceInfoOutPort {
     private val log = KotlinLogging.logger {}
 
@@ -28,14 +28,7 @@ class OpenWeatherMapGetPlaceInfo(
     )
 
     override suspend operator fun invoke(input: GetPlaceInfoOutPort.Input): Outcome<DomainPlaceInfo> {
-        val httpClient: HttpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build()
-        val requestHead = HttpRequest.newBuilder()
-            .GET()
-            .uri(URI.create("http://api.openweathermap.org/geo/1.0/reverse?lat=${input.coordinates.latitude}&lon=${input.coordinates.longitude}&limit=1&appid=$apiKey"))
-            .build()
-        val httpResponse = httpClient.sendAsync(requestHead, HttpResponse.BodyHandlers.ofString()).await()
+        val httpResponse = httpClient.sendAsync(buildRequest(input), HttpResponse.BodyHandlers.ofString()).await()
         return if (httpResponse.statusCode() == 200) {
             val places = json.decodeFromString<List<PlaceInfo>>(httpResponse.body())
             require(places.size == 1) { "Expected exactly one result" }
@@ -45,4 +38,10 @@ class OpenWeatherMapGetPlaceInfo(
             return Outcome.Error(ErrorType.WEATHER_API_ERROR)
         }
     }
+
+    private fun buildRequest(input: GetPlaceInfoOutPort.Input) =
+        HttpRequest.newBuilder()
+            .GET()
+            .uri(URI.create("http://api.openweathermap.org/geo/1.0/reverse?lat=${input.coordinates.latitude}&lon=${input.coordinates.longitude}&limit=1&appid=$apiKey"))
+            .build()
 }

@@ -14,11 +14,11 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.time.Duration
 
 class OpenWeatherMapGetWeather(
     private val json: Json,
-    private val apiKey: String
+    private val apiKey: String,
+    private val httpClient: HttpClient,
 ) : GetWeatherOutPort {
     private val log = KotlinLogging.logger {}
 
@@ -49,14 +49,7 @@ class OpenWeatherMapGetWeather(
     }
 
     override suspend operator fun invoke(input: GetWeatherOutPort.Input): Outcome<Weather> {
-        val httpClient: HttpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build()
-        val requestHead = HttpRequest.newBuilder()
-            .GET()
-            .uri(URI.create("https://api.openweathermap.org/data/2.5/weather?id=524901&units=metric&appid=$apiKey&lat=${input.coordinates.latitude}&lon=${input.coordinates.longitude}"))
-            .build()
-        val httpResponse = httpClient.sendAsync(requestHead, HttpResponse.BodyHandlers.ofString()).await()
+        val httpResponse = httpClient.sendAsync(buildRequest(input), HttpResponse.BodyHandlers.ofString()).await()
         return if (httpResponse.statusCode() == 200) {
             val responseBody = httpResponse.body()
             val weather = json.decodeFromString<WeatherWrapper>(responseBody).let {
@@ -77,4 +70,10 @@ class OpenWeatherMapGetWeather(
             return Outcome.Error(ErrorType.PLACE_INFO_API_ERROR)
         }
     }
+
+    private fun buildRequest(input: GetWeatherOutPort.Input) =
+        HttpRequest.newBuilder()
+            .GET()
+            .uri(URI.create("https://api.openweathermap.org/data/2.5/weather?id=524901&units=metric&appid=$apiKey&lat=${input.coordinates.latitude}&lon=${input.coordinates.longitude}"))
+            .build()
 }
